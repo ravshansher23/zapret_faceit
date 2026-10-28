@@ -165,6 +165,7 @@ fn start(strategy: Strategy) -> Result<Finish, String> {
             println!("{}", server.label());
         }
         println!("udp {udp}");
+        println!("VPN выключите: пакеты матча должны идти напрямую, не в туннель.");
         println!("Дальше подключайтесь к матчу. Остановить обход: Стоп.bat");
         Ok(Finish::Stay)
     }

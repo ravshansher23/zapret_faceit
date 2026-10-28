@@ -16,11 +16,6 @@ pub fn winws_arguments(root: &Path, udp: &str, strategy: Strategy) -> Vec<String
     let exclude = display(&lists.join("ipset-exclude.txt"));
     let quic = file("quic_initial_www_google_com.bin");
     let tls = file("tls_clienthello_www_google_com.bin");
-    let game_fake = if bin.join("ACTIVE_GAME_UDP.bin").is_file() {
-        file("ACTIVE_GAME_UDP.bin")
-    } else {
-        file("stun.bin")
-    };
     let quic_repeats = match strategy {
         Strategy::Fake => "6",
         Strategy::Alt => "11",
@@ -60,18 +55,26 @@ pub fn winws_arguments(root: &Path, udp: &str, strategy: Strategy) -> Vec<String
         ]),
     }
 
+    let (game_repeats, game_cutoff) = match strategy {
+        Strategy::Fake => ("2", "n500"),
+        Strategy::Alt => ("4", "n1000"),
+    };
     let mut game = vec![
         format!("--filter-udp={udp}"),
         format!("--ipset={ipset}"),
         format!("--ipset-exclude={exclude}"),
         "--dpi-desync=fake".to_string(),
-        "--dpi-desync-repeats=2".to_string(),
+        format!("--dpi-desync-repeats={game_repeats}"),
         "--dpi-desync-any-protocol=1".to_string(),
-        format!("--dpi-desync-fake-unknown-udp={game_fake}"),
+        format!("--dpi-desync-fake-unknown-udp={quic}"),
+        format!("--dpi-desync-cutoff={game_cutoff}"),
     ];
     match strategy {
-        Strategy::Fake => game.push("--dpi-desync-fooling=badsum".to_string()),
-        Strategy::Alt => game.push("--dpi-desync-ttl=3".to_string()),
+        Strategy::Fake => game.push("--dpi-desync-ttl=6".to_string()),
+        Strategy::Alt => game.extend([
+            "--dpi-desync-ttl=8".to_string(),
+            "--dpi-desync-autottl=2:2-20".to_string(),
+        ]),
     }
     args.extend(game);
     args
@@ -93,9 +96,6 @@ pub fn missing_files(root: &Path) -> Vec<String> {
             missing.push(format!("bin/{name}"));
         }
     }
-    if !bin.join("ACTIVE_GAME_UDP.bin").is_file() && !bin.join("stun.bin").is_file() {
-        missing.push("bin/ACTIVE_GAME_UDP.bin".to_string());
-    }
     for name in ["list-faceit.txt", "ipset-exclude.txt"] {
         if !lists.join(name).is_file() {
             missing.push(format!("lists/{name}"));
@@ -112,7 +112,6 @@ fn display(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
     fn fake_strategy_targets_saved_port_and_ipset() {
@@ -125,9 +124,10 @@ mod tests {
         assert!(joined.contains(&root.join("lists/ipset-faceit-user.txt").display().to_string()));
         assert!(joined.contains(&root.join("lists/list-faceit.txt").display().to_string()));
         assert!(!joined.contains("0.0.0.0/0"));
-        assert!(joined.contains("stun.bin"));
-        assert!(joined.contains("--dpi-desync-fooling=badsum"));
-        assert!(!joined.contains("dpi-desync-cutoff"));
+        assert!(joined.contains("quic_initial_www_google_com.bin"));
+        assert!(joined.contains("--dpi-desync-ttl=6"));
+        assert!(joined.contains("--dpi-desync-cutoff=n500"));
+        assert!(!joined.contains("badsum"));
     }
 
     #[test]
@@ -138,18 +138,8 @@ mod tests {
         assert!(joined.contains("--filter-udp=27016,27030"));
         assert!(joined.contains("--dpi-desync-repeats=11"));
         assert!(!joined.contains("fakedsplit"));
-        assert!(joined.contains("--dpi-desync-ttl=3"));
-        assert!(!joined.contains("dpi-desync-cutoff"));
-    }
-
-    #[test]
-    fn prefers_active_game_fake_when_present() {
-        let root = std::env::temp_dir().join("faceit-bypass-fake-bin");
-        let _ = fs::remove_dir_all(&root);
-        fs::create_dir_all(root.join("bin")).unwrap();
-        fs::write(root.join("bin").join("ACTIVE_GAME_UDP.bin"), b"x").unwrap();
-        let joined = winws_arguments(&root, "27015", Strategy::Fake).join("\n");
-        assert!(joined.contains("ACTIVE_GAME_UDP.bin"));
-        let _ = fs::remove_dir_all(root);
+        assert!(joined.contains("--dpi-desync-ttl=8"));
+        assert!(joined.contains("--dpi-desync-autottl=2:2-20"));
+        assert!(joined.contains("--dpi-desync-cutoff=n1000"));
     }
 }
