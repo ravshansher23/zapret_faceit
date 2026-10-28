@@ -68,7 +68,17 @@ pub fn port_spec(servers: &[Server]) -> Result<String, String> {
     if !valid_port_spec_ports(&ports) {
         return Err("некорректный список портов".into());
     }
-    Ok(ports.into_iter().map(|port| port.to_string()).collect::<Vec<_>>().join(","))
+    let mut parts = Vec::new();
+    let covers_cs = ports.iter().any(|port| (27000..=27200).contains(port));
+    if covers_cs {
+        parts.push("27000-27200".to_string());
+    }
+    for port in ports {
+        if !(27000..=27200).contains(&port) {
+            parts.push(port.to_string());
+        }
+    }
+    Ok(parts.join(","))
 }
 
 pub fn valid_port_spec(spec: &str) -> bool {
@@ -403,7 +413,7 @@ mod tests {
         store.add(Server { ip: Ipv4Addr::new(1, 2, 3, 4), port: Some(27016) }).unwrap();
         let text = fs::read_to_string(store.ipset_path()).unwrap();
         assert_eq!(text, "8.8.4.4/32\n1.2.3.4/32\n");
-        assert_eq!(port_spec(&store.load().unwrap()).unwrap(), "27016,27030");
+        assert_eq!(port_spec(&store.load().unwrap()).unwrap(), "27000-27200");
         store.add(Server { ip: Ipv4Addr::new(1, 1, 1, 1), port: None }).unwrap();
         assert_eq!(port_spec(&store.load().unwrap()).unwrap(), WIDE_UDP);
         let _ = fs::remove_dir_all(root);

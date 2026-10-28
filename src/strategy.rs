@@ -25,10 +25,6 @@ pub fn winws_arguments(root: &Path, udp: &str, strategy: Strategy) -> Vec<String
         Strategy::Fake => "6",
         Strategy::Alt => "11",
     };
-    let cutoff = match strategy {
-        Strategy::Fake => "n3",
-        Strategy::Alt => "n2",
-    };
 
     let mut args = vec![
         "--wf-tcp=80,443".to_string(),
@@ -64,16 +60,21 @@ pub fn winws_arguments(root: &Path, udp: &str, strategy: Strategy) -> Vec<String
         ]),
     }
 
-    args.extend([
+    let mut game = vec![
         format!("--filter-udp={udp}"),
         format!("--ipset={ipset}"),
         format!("--ipset-exclude={exclude}"),
         "--dpi-desync=fake".to_string(),
-        "--dpi-desync-repeats=12".to_string(),
+        "--dpi-desync-repeats=6".to_string(),
         "--dpi-desync-any-protocol=1".to_string(),
         format!("--dpi-desync-fake-unknown-udp={game_fake}"),
-        format!("--dpi-desync-cutoff={cutoff}"),
-    ]);
+        "--dpi-desync-cutoff=n2".to_string(),
+    ];
+    match strategy {
+        Strategy::Fake => game.push("--dpi-desync-fooling=badsum".to_string()),
+        Strategy::Alt => game.push("--dpi-desync-ttl=3".to_string()),
+    }
+    args.extend(game);
     args
 }
 
@@ -126,6 +127,7 @@ mod tests {
         assert!(joined.contains(&root.join("lists/list-faceit.txt").display().to_string()));
         assert!(!joined.contains("0.0.0.0/0"));
         assert!(joined.contains("stun.bin"));
+        assert!(joined.contains("--dpi-desync-fooling=badsum"));
     }
 
     #[test]
@@ -136,6 +138,7 @@ mod tests {
         assert!(joined.contains("--filter-udp=27016,27030"));
         assert!(joined.contains("--dpi-desync-repeats=11"));
         assert!(!joined.contains("fakedsplit"));
+        assert!(joined.contains("--dpi-desync-ttl=3"));
     }
 
     #[test]
