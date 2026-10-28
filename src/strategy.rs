@@ -65,10 +65,9 @@ pub fn winws_arguments(root: &Path, udp: &str, strategy: Strategy) -> Vec<String
         format!("--ipset={ipset}"),
         format!("--ipset-exclude={exclude}"),
         "--dpi-desync=fake".to_string(),
-        "--dpi-desync-repeats=6".to_string(),
+        "--dpi-desync-repeats=2".to_string(),
         "--dpi-desync-any-protocol=1".to_string(),
         format!("--dpi-desync-fake-unknown-udp={game_fake}"),
-        "--dpi-desync-cutoff=n2".to_string(),
     ];
     match strategy {
         Strategy::Fake => game.push("--dpi-desync-fooling=badsum".to_string()),
@@ -128,6 +127,7 @@ mod tests {
         assert!(!joined.contains("0.0.0.0/0"));
         assert!(joined.contains("stun.bin"));
         assert!(joined.contains("--dpi-desync-fooling=badsum"));
+        assert!(!joined.contains("dpi-desync-cutoff"));
     }
 
     #[test]
@@ -139,6 +139,7 @@ mod tests {
         assert!(joined.contains("--dpi-desync-repeats=11"));
         assert!(!joined.contains("fakedsplit"));
         assert!(joined.contains("--dpi-desync-ttl=3"));
+        assert!(!joined.contains("dpi-desync-cutoff"));
     }
 
     #[test]
