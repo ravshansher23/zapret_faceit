@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pack runtime zip
+        run: python3 scripts/pack_release.py
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/faceit-bypass.zip
+          body: |
+            Распакуйте архив и запустите Запуск.bat.
+            В комнате матча FACEIT сначала нажмите Copy, чтобы в буфере был IP сервера.
