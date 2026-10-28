@@ -16,6 +16,7 @@ pub fn winws_arguments(root: &Path, udp: &str, strategy: Strategy) -> Vec<String
     let exclude = display(&lists.join("ipset-exclude.txt"));
     let quic = file("quic_initial_www_google_com.bin");
     let tls = file("tls_clienthello_www_google_com.bin");
+    let game_fake = file("stun.bin");
     let quic_repeats = match strategy {
         Strategy::Fake => "6",
         Strategy::Alt => "11",
@@ -55,25 +56,23 @@ pub fn winws_arguments(root: &Path, udp: &str, strategy: Strategy) -> Vec<String
         ]),
     }
 
-    let (game_repeats, game_cutoff) = match strategy {
-        Strategy::Fake => ("2", "n500"),
-        Strategy::Alt => ("4", "n1000"),
-    };
     let mut game = vec![
         format!("--filter-udp={udp}"),
         format!("--ipset={ipset}"),
         format!("--ipset-exclude={exclude}"),
-        "--dpi-desync=fake".to_string(),
-        format!("--dpi-desync-repeats={game_repeats}"),
         "--dpi-desync-any-protocol=1".to_string(),
-        format!("--dpi-desync-fake-unknown-udp={quic}"),
-        format!("--dpi-desync-cutoff={game_cutoff}"),
     ];
     match strategy {
-        Strategy::Fake => game.push("--dpi-desync-ttl=6".to_string()),
+        Strategy::Fake => game.extend([
+            "--dpi-desync=ipfrag2".to_string(),
+            "--dpi-desync-ipfrag-pos-udp=8".to_string(),
+        ]),
         Strategy::Alt => game.extend([
+            "--dpi-desync=fake".to_string(),
+            "--dpi-desync-repeats=1".to_string(),
+            format!("--dpi-desync-fake-unknown-udp={game_fake}"),
             "--dpi-desync-ttl=8".to_string(),
-            "--dpi-desync-autottl=2:2-20".to_string(),
+            "--dpi-desync-autottl=1:3-16".to_string(),
         ]),
     }
     args.extend(game);
@@ -91,6 +90,7 @@ pub fn missing_files(root: &Path) -> Vec<String> {
         "cygwin1.dll",
         "quic_initial_www_google_com.bin",
         "tls_clienthello_www_google_com.bin",
+        "stun.bin",
     ] {
         if !bin.join(name).is_file() {
             missing.push(format!("bin/{name}"));
@@ -124,10 +124,10 @@ mod tests {
         assert!(joined.contains(&root.join("lists/ipset-faceit-user.txt").display().to_string()));
         assert!(joined.contains(&root.join("lists/list-faceit.txt").display().to_string()));
         assert!(!joined.contains("0.0.0.0/0"));
-        assert!(joined.contains("quic_initial_www_google_com.bin"));
-        assert!(joined.contains("--dpi-desync-ttl=6"));
-        assert!(joined.contains("--dpi-desync-cutoff=n500"));
+        assert!(joined.contains("--dpi-desync=ipfrag2"));
+        assert!(joined.contains("--dpi-desync-ipfrag-pos-udp=8"));
         assert!(!joined.contains("badsum"));
+        assert!(!joined.contains("dpi-desync-cutoff"));
     }
 
     #[test]
@@ -138,8 +138,9 @@ mod tests {
         assert!(joined.contains("--filter-udp=27016,27030"));
         assert!(joined.contains("--dpi-desync-repeats=11"));
         assert!(!joined.contains("fakedsplit"));
-        assert!(joined.contains("--dpi-desync-ttl=8"));
-        assert!(joined.contains("--dpi-desync-autottl=2:2-20"));
-        assert!(joined.contains("--dpi-desync-cutoff=n1000"));
+        assert!(joined.contains("--dpi-desync-repeats=1"));
+        assert!(joined.contains("stun.bin"));
+        assert!(joined.contains("--dpi-desync-autottl=1:3-16"));
+        assert!(!joined.contains("ipfrag2"));
     }
 }

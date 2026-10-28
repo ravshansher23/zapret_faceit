@@ -165,6 +165,11 @@ fn start(strategy: Strategy) -> Result<Finish, String> {
             println!("{}", server.label());
         }
         println!("udp {udp}");
+        let mode = match strategy {
+            Strategy::Fake => "фрагменты игровых пакетов",
+            Strategy::Alt => "короткая маскировка",
+        };
+        println!("режим: {mode}");
         println!("VPN выключите: пакеты матча должны идти напрямую, не в туннель.");
         println!("Дальше подключайтесь к матчу. Остановить обход: Стоп.bat");
         Ok(Finish::Stay)
