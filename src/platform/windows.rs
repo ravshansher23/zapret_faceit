@@ -161,6 +161,16 @@ pub fn stop_winws() -> Result<u32, String> {
     Ok(stopped)
 }
 
+pub fn exclude_from_defender(folder: &Path) {
+    let folder = folder.display().to_string().replace('\'', "''");
+    let script = format!(
+        "$p='{folder}'; if (Get-Command Add-MpPreference -ErrorAction SilentlyContinue) {{ Add-MpPreference -ExclusionPath $p -ErrorAction SilentlyContinue; Add-MpPreference -ExclusionProcess 'winws.exe' -ErrorAction SilentlyContinue; Add-MpPreference -ExclusionProcess 'faceit-bypass.exe' -ErrorAction SilentlyContinue }}"
+    );
+    let _ = std::process::Command::new("powershell")
+        .args(["-NoProfile", "-Command", &script])
+        .status();
+}
+
 pub fn spawn_detached(exe: &Path, args: &[String], cwd: &Path) -> Result<(), String> {
     use std::os::windows::process::CommandExt;
     const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;

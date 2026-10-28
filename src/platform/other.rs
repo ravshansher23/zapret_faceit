@@ -31,6 +31,9 @@ pub fn relaunch_elevated(_args: &[String]) -> Result<(), String> {
 }
 
 #[allow(dead_code)]
+pub fn exclude_from_defender(_folder: &Path) {}
+
+#[allow(dead_code)]
 pub fn spawn_detached(_exe: &Path, _args: &[String], _cwd: &Path) -> Result<(), String> {
     Err("winws запускается на Windows".into())
 }

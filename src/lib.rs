@@ -152,6 +152,7 @@ fn start(strategy: Strategy) -> Result<Finish, String> {
             println!("Подтвердите запрос администратора.");
             return Ok(Finish::Exit);
         }
+        platform::exclude_from_defender(&store.root);
         let stopped = platform::stop_winws()?;
         if stopped > 0 {
             println!("предыдущий обход остановлен");
