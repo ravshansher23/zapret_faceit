@@ -164,7 +164,7 @@ fn start(strategy: Strategy) -> Result<Finish, String> {
         for server in &servers {
             println!("{}", server.label());
         }
-        println!("udp {udp}");
+        println!("udp 27000-28100 и порты Steam, не только IP сервера");
         let mode = match strategy {
             Strategy::Fake => "фрагменты игровых пакетов",
             Strategy::Alt => "короткая маскировка",

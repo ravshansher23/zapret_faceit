@@ -1,2 +1,7 @@
 faceit.com
 faceit-cdn.net
+steampowered.com
+steamcommunity.com
+steamserver.net
+steamstatic.com
+steamcontent.com
